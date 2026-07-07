@@ -16,8 +16,14 @@ export default function Catalogo() {
 
   const [touchStart, setTouchStart] = useState(null)
   const [touchEnd, setTouchEnd] = useState(null)
+  
+  // Detector de tela para ajustar o design
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
 
   useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+
     const carregarInformacoes = async () => {
       try {
         const queryProdutos = await getDocs(collection(db, "produtos"))
@@ -41,6 +47,7 @@ export default function Catalogo() {
     }
 
     carregarInformacoes()
+    return () => window.removeEventListener('resize', handleResize)
   }, [])
 
   const tema = {
@@ -151,7 +158,7 @@ export default function Catalogo() {
             <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '16px' }}>
               <h3 style={{ fontSize: '13px', color: tema.textoSecundario, margin: '0 0 8px 0', textTransform: 'uppercase', fontWeight: 'bold' }}>Endereço da Loja</h3>
               <p style={{ margin: 0, fontSize: '15px', color: tema.textoPrincipal, lineHeight: '1.5' }}>
-                Rua Pedro Candido de Macedo, 522, Bairro Ivan Bezerra<br/>Parelhas, RN
+                Rua Exemplo, 123, Bairro Centro<br/>Natal, RN
               </p>
             </div>
           </div>
@@ -200,7 +207,7 @@ export default function Catalogo() {
 
       {produtoSelecionado && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(6px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 4000, padding: '20px' }} onClick={() => setProdutoSelecionado(null)}>
-          <div style={{ background: 'white', borderRadius: '24px', width: '100%', maxWidth: '450px', maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #f3f4f6' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ background: 'white', borderRadius: '24px', width: '100%', maxWidth: '450px', maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', position: 'relative', boxShadow: '0 25px 50px rgba(0,0,0,0.25)', border: '1px solid #f3f4f6' }} onClick={(e) => e.stopPropagation()}>
             
             <button onClick={() => setProdutoSelecionado(null)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.9)', color: tema.textoPrincipal, border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
               <X size={20} />
@@ -281,17 +288,17 @@ export default function Catalogo() {
         </div>
       )}
 
-      <header style={{ background: '#ffffff', padding: '30px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #f3f4f6' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', maxWidth: '700px', marginBottom: '24px' }}>
-          <button onClick={() => setModalInfoAberta(true)} style={{ background: '#f9fafb', border: 'none', borderRadius: '14px', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: tema.textoPrincipal }}>
-            <Info size={22} />
+      <header style={{ background: '#ffffff', padding: isMobile ? '20px 16px' : '30px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #f3f4f6' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', maxWidth: '700px', marginBottom: '24px', position: 'relative' }}>
+          
+          <button onClick={() => setModalInfoAberta(true)} style={{ position: 'absolute', left: 0, background: '#f9fafb', border: 'none', borderRadius: '14px', width: isMobile ? '40px' : '44px', height: isMobile ? '40px' : '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: tema.textoPrincipal }}>
+            <Info size={isMobile ? 20 : 22} />
           </button>
 
-          <h1 style={{ fontSize: '28px', fontWeight: '900', margin: 0, color: tema.textoPrincipal, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <ShoppingBag color={tema.primaria} size={32} /> {nomeLoja}
+          <h1 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: '900', margin: 0, color: tema.textoPrincipal, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textAlign: 'center', lineHeight: '1.2' }}>
+            <ShoppingBag color={tema.primaria} size={isMobile ? 26 : 32} /> {nomeLoja}
           </h1>
 
-          <div style={{ width: '44px', height: '44px' }}></div>
         </div>
         
         <div style={{ position: 'relative', width: '100%', maxWidth: '700px' }}>
@@ -306,9 +313,23 @@ export default function Catalogo() {
         </div>
       </header>
 
-      <main style={{ padding: '30px 20px', maxWidth: '1200px', margin: '0 auto' }}>
+      <main style={{ padding: isMobile ? '20px 16px' : '30px 20px', maxWidth: '1200px', margin: '0 auto' }}>
         
-        <div style={{ display: 'flex', overflowX: 'auto', gap: '10px', paddingBottom: '16px', marginBottom: '24px', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', paddingLeft: '4px', paddingRight: '20px' }}>
+        {/* NOVA CAIXA DE CATEGORIAS: DUAS LINHAS COM ROLAGEM */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateRows: 'auto auto', 
+          gridAutoFlow: 'column', 
+          gap: '10px', 
+          overflowX: 'auto', 
+          paddingBottom: '16px', 
+          marginBottom: '24px', 
+          scrollbarWidth: 'none', 
+          WebkitOverflowScrolling: 'touch', 
+          paddingLeft: '4px', 
+          paddingRight: '20px',
+          justifyContent: 'start'
+        }}>
           {categoriasUnicas.map(cat => (
             <button 
               key={cat}
@@ -325,7 +346,6 @@ export default function Catalogo() {
                 color: categoriaAtiva === cat ? '#ffffff' : tema.textoPrincipal,
                 boxShadow: categoriaAtiva === cat ? '0 4px 10px rgba(219, 39, 119, 0.2)' : '0 2px 4px rgba(0,0,0,0.02)',
                 transition: 'all 0.2s ease',
-                flexShrink: 0
               }}
             >
               {cat}
