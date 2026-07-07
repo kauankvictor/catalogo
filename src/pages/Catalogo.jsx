@@ -5,7 +5,7 @@ import { Search, ShoppingBag, X, MessageCircle, Image as ImageIcon, ChevronLeft,
 
 export default function Catalogo() {
   const [produtos, setProdutos] = useState([])
-  const [nomeLoja, setNomeLoja] = useState('Storefy')
+  const [nomeLoja, setNomeLoja] = useState('Paulinha variedades')
   const [carregando, setCarregando] = useState(true)
   const [pesquisa, setPesquisa] = useState('')
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos')
