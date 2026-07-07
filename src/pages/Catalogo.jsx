@@ -44,13 +44,13 @@ export default function Catalogo() {
   }, [])
 
   const tema = {
-    fundoBase: '#f9fafb', // Fundo alterado para neutro
+    fundoBase: '#f9fafb',
     fundoCard: '#ffffff',
     primaria: '#db2777',
     primariaHover: '#be185d',
     textoPrincipal: '#1f2937',
     textoSecundario: '#6b7280',
-    borda: '#f3f4f6' // Borda alterada para neutro
+    borda: '#f3f4f6'
   }
 
   const categoriasUnicas = ['Todos', ...new Set(produtos.map(p => p.categoria || 'Sem Categoria'))]
@@ -207,6 +207,12 @@ export default function Catalogo() {
             </button>
             
             <div style={{ width: '100%', height: '360px', display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', background: '#f9fafb', scrollbarWidth: 'none', position: 'relative' }}>
+              {Number(produtoSelecionado.precoAntigo) > Number(produtoSelecionado.preco) && (
+                <div style={{ position: 'absolute', top: '16px', left: '16px', background: '#ef4444', color: 'white', fontSize: '13px', fontWeight: 'bold', padding: '6px 10px', borderRadius: '8px', zIndex: 5 }}>
+                  -{Math.round(((Number(produtoSelecionado.precoAntigo) - Number(produtoSelecionado.preco)) / Number(produtoSelecionado.precoAntigo)) * 100)}%
+                </div>
+              )}
+              
               {(() => {
                 if (fotosParaVisualizador.length === 0) {
                   return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><ImageIcon size={50} color="#d1d5db" /></div>
@@ -249,7 +255,7 @@ export default function Catalogo() {
               <div>
                 <h4 style={{ fontSize: '15px', color: tema.textoPrincipal, fontWeight: 'bold', margin: '0 0 8px 0' }}>Detalhes do Produto</h4>
                 <p style={{ fontSize: '15px', color: tema.textoSecundario, margin: 0, lineHeight: '1.6' }}>
-                  {produtoSelecionado.descricao || 'Nenhuma descrição detalhada disponível.'}
+                  {produtoSelecionado.descricao || 'Nenhuma descrição detalhada disponível para este produto.'}
                 </p>
               </div>
 
@@ -334,6 +340,7 @@ export default function Catalogo() {
             produtosFiltrados.map(p => {
               const fotoPrincipal = pegarPrimeiraFoto(p);
               const esgotado = Number(p.quantidade) <= 0;
+              const temDesconto = Number(p.precoAntigo) > Number(p.preco);
 
               return (
                 <div 
@@ -342,11 +349,19 @@ export default function Catalogo() {
                   onClick={() => setProdutoSelecionado(p)}
                 >
                   <div style={{ height: '180px', width: '100%', background: '#ffffff', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', padding: '10px', boxSizing: 'border-box' }}>
+                    
+                    {temDesconto && (
+                      <div style={{ position: 'absolute', top: '12px', left: '12px', background: '#ef4444', color: 'white', fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '8px', zIndex: 5 }}>
+                        -{Math.round(((Number(p.precoAntigo) - Number(p.preco)) / Number(p.precoAntigo)) * 100)}%
+                      </div>
+                    )}
+
                     {fotoPrincipal ? (
                       <img src={fotoPrincipal} alt={p.nome} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                     ) : (
                       <ImageIcon size={40} color="#e5e7eb" />
                     )}
+                    
                     {esgotado && (
                       <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(220, 38, 38, 0.9)', color: 'white', fontSize: '10px', fontWeight: 'bold', padding: '6px 10px', borderRadius: '8px', textTransform: 'uppercase', backdropFilter: 'blur(4px)' }}>Esgotado</div>
                     )}
@@ -356,7 +371,7 @@ export default function Catalogo() {
                     <h4 style={{ fontSize: '14px', color: tema.textoPrincipal, fontWeight: '700', margin: '0 0 10px 0', lineHeight: '1.4', flexGrow: 1 }}>{p.nome}</h4>
                     
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-                      {Number(p.precoAntigo) > Number(p.preco) && (
+                      {temDesconto && (
                         <span style={{ fontSize: '14px', color: '#9ca3af', textDecoration: 'line-through', fontWeight: '600' }}>
                           {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(p.precoAntigo))}
                         </span>
