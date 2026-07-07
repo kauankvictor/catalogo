@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../firebaseConfig'
-import { Search, ShoppingBag, X, MessageCircle, Image as ImageIcon, ChevronLeft, ChevronRight, Maximize2, Info } from 'lucide-react'
+import { Search, ShoppingBag, X, MessageCircle, Image as ImageIcon, ChevronLeft, ChevronRight, Maximize2, Info, MapPin } from 'lucide-react'
 
 export default function Catalogo() {
   const [produtos, setProdutos] = useState([])
@@ -44,13 +44,13 @@ export default function Catalogo() {
   }, [])
 
   const tema = {
-    fundoBase: '#fdf2f8',
+    fundoBase: '#f9fafb', // Fundo alterado para neutro
     fundoCard: '#ffffff',
     primaria: '#db2777',
     primariaHover: '#be185d',
     textoPrincipal: '#1f2937',
     textoSecundario: '#6b7280',
-    borda: '#fce7f3'
+    borda: '#f3f4f6' // Borda alterada para neutro
   }
 
   const categoriasUnicas = ['Todos', ...new Set(produtos.map(p => p.categoria || 'Sem Categoria'))]
@@ -140,7 +140,7 @@ export default function Catalogo() {
       {modalInfoAberta && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(5px)', zIndex: 5000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }} onClick={() => setModalInfoAberta(false)}>
           <div style={{ background: 'white', borderRadius: '24px', padding: '32px 24px', width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }} onClick={e => e.stopPropagation()}>
-            <button onClick={() => setModalInfoAberta(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: '#fdf2f8', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: tema.primaria }}>
+            <button onClick={() => setModalInfoAberta(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: '#f3f4f6', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: tema.primaria }}>
               <X size={20} />
             </button>
             
@@ -200,16 +200,16 @@ export default function Catalogo() {
 
       {produtoSelecionado && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(6px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 4000, padding: '20px' }} onClick={() => setProdutoSelecionado(null)}>
-          <div style={{ background: 'white', borderRadius: '24px', width: '100%', maxWidth: '450px', maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #fce7f3' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ background: 'white', borderRadius: '24px', width: '100%', maxWidth: '450px', maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #f3f4f6' }} onClick={(e) => e.stopPropagation()}>
             
             <button onClick={() => setProdutoSelecionado(null)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(255,255,255,0.9)', color: tema.textoPrincipal, border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
               <X size={20} />
             </button>
             
-            <div style={{ width: '100%', height: '360px', display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', background: '#fdf2f8', scrollbarWidth: 'none', position: 'relative' }}>
+            <div style={{ width: '100%', height: '360px', display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', background: '#f9fafb', scrollbarWidth: 'none', position: 'relative' }}>
               {(() => {
                 if (fotosParaVisualizador.length === 0) {
-                  return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><ImageIcon size={50} color="#fbcfe8" /></div>
+                  return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><ImageIcon size={50} color="#d1d5db" /></div>
                 }
                 return fotosParaVisualizador.map((foto, idx) => (
                   <div key={idx} style={{ width: '100%', height: '100%', flexShrink: 0, scrollSnapAlign: 'start', position: 'relative', cursor: 'zoom-in' }} onClick={() => setFotoExpandidaIndex(idx)}>
@@ -231,9 +231,16 @@ export default function Catalogo() {
               </div>
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f9fafb', padding: '16px', borderRadius: '16px' }}>
-                <span style={{ fontSize: '28px', color: tema.primaria, fontWeight: '900' }}>
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(produtoSelecionado.preco) || 0)}
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {Number(produtoSelecionado.precoAntigo) > Number(produtoSelecionado.preco) && (
+                    <span style={{ fontSize: '15px', color: '#9ca3af', textDecoration: 'line-through', fontWeight: '600', marginBottom: '2px' }}>
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(produtoSelecionado.precoAntigo))}
+                    </span>
+                  )}
+                  <span style={{ fontSize: '28px', color: tema.primaria, fontWeight: '900' }}>
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(produtoSelecionado.preco) || 0)}
+                  </span>
+                </div>
                 {Number(produtoSelecionado.quantidade) <= 0 && (
                   <span style={{ background: '#fee2e2', color: '#dc2626', padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold' }}>Esgotado</span>
                 )}
@@ -242,7 +249,7 @@ export default function Catalogo() {
               <div>
                 <h4 style={{ fontSize: '15px', color: tema.textoPrincipal, fontWeight: 'bold', margin: '0 0 8px 0' }}>Detalhes do Produto</h4>
                 <p style={{ fontSize: '15px', color: tema.textoSecundario, margin: 0, lineHeight: '1.6' }}>
-                  {produtoSelecionado.descricao || 'Nenhuma descrição detalhada disponível para este produto.'}
+                  {produtoSelecionado.descricao || 'Nenhuma descrição detalhada disponível.'}
                 </p>
               </div>
 
@@ -268,9 +275,9 @@ export default function Catalogo() {
         </div>
       )}
 
-      <header style={{ background: '#ffffff', padding: '30px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #fce7f3' }}>
+      <header style={{ background: '#ffffff', padding: '30px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #f3f4f6' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', maxWidth: '700px', marginBottom: '24px' }}>
-          <button onClick={() => setModalInfoAberta(true)} style={{ background: '#fdf2f8', border: 'none', borderRadius: '14px', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: tema.primaria }}>
+          <button onClick={() => setModalInfoAberta(true)} style={{ background: '#f9fafb', border: 'none', borderRadius: '14px', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: tema.textoPrincipal }}>
             <Info size={22} />
           </button>
 
@@ -287,7 +294,7 @@ export default function Catalogo() {
             placeholder="Encontre o que você procura..." 
             value={pesquisa}
             onChange={(e) => setPesquisa(e.target.value)}
-            style={{ width: '100%', padding: '16px 16px 16px 50px', borderRadius: '16px', border: '1px solid #fce7f3', outline: 'none', fontSize: '15px', background: '#fff', color: tema.textoPrincipal, boxSizing: 'border-box', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}
+            style={{ width: '100%', padding: '16px 16px 16px 50px', borderRadius: '16px', border: '1px solid #f3f4f6', outline: 'none', fontSize: '15px', background: '#fff', color: tema.textoPrincipal, boxSizing: 'border-box', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}
           />
           <Search size={20} color={tema.primaria} style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)' }} />
         </div>
@@ -307,7 +314,7 @@ export default function Catalogo() {
                 fontSize: '14px',
                 fontWeight: '700',
                 cursor: 'pointer',
-                border: categoriaAtiva === cat ? 'none' : '1px solid #fce7f3',
+                border: categoriaAtiva === cat ? 'none' : '1px solid #f3f4f6',
                 background: categoriaAtiva === cat ? tema.primaria : '#ffffff',
                 color: categoriaAtiva === cat ? '#ffffff' : tema.textoPrincipal,
                 boxShadow: categoriaAtiva === cat ? '0 4px 10px rgba(219, 39, 119, 0.2)' : '0 2px 4px rgba(0,0,0,0.02)',
@@ -322,7 +329,7 @@ export default function Catalogo() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '24px' }}>
           {produtosFiltrados.length === 0 ? (
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px', color: tema.textoSecundario, background: 'white', borderRadius: '24px', border: '1px dashed #fce7f3' }}>Nenhum produto encontrado.</div>
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px', color: tema.textoSecundario, background: 'white', borderRadius: '24px', border: '1px dashed #e5e7eb' }}>Nenhum produto encontrado.</div>
           ) : (
             produtosFiltrados.map(p => {
               const fotoPrincipal = pegarPrimeiraFoto(p);
@@ -331,25 +338,33 @@ export default function Catalogo() {
               return (
                 <div 
                   key={p.id} 
-                  style={{ background: tema.fundoCard, borderRadius: '24px', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid #fce7f3', boxShadow: '0 10px 20px rgba(0,0,0,0.03)', transition: 'transform 0.2s ease', cursor: 'pointer' }}
+                  style={{ background: tema.fundoCard, borderRadius: '24px', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid #f3f4f6', boxShadow: '0 10px 20px rgba(0,0,0,0.03)', transition: 'transform 0.2s ease', cursor: 'pointer' }}
                   onClick={() => setProdutoSelecionado(p)}
                 >
                   <div style={{ height: '180px', width: '100%', background: '#ffffff', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', padding: '10px', boxSizing: 'border-box' }}>
                     {fotoPrincipal ? (
                       <img src={fotoPrincipal} alt={p.nome} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                     ) : (
-                      <ImageIcon size={40} color="#fce7f3" />
+                      <ImageIcon size={40} color="#e5e7eb" />
                     )}
                     {esgotado && (
                       <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(220, 38, 38, 0.9)', color: 'white', fontSize: '10px', fontWeight: 'bold', padding: '6px 10px', borderRadius: '8px', textTransform: 'uppercase', backdropFilter: 'blur(4px)' }}>Esgotado</div>
                     )}
                   </div>
 
-                  <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', flex: 1, alignItems: 'center', textAlign: 'center', background: '#fafafa' }}>
+                  <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', flex: 1, alignItems: 'center', textAlign: 'center', background: '#f9fafb' }}>
                     <h4 style={{ fontSize: '14px', color: tema.textoPrincipal, fontWeight: '700', margin: '0 0 10px 0', lineHeight: '1.4', flexGrow: 1 }}>{p.nome}</h4>
-                    <span style={{ fontSize: '18px', fontWeight: '900', color: tema.primaria, marginBottom: '20px' }}>
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(p.preco) || 0)}
-                    </span>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+                      {Number(p.precoAntigo) > Number(p.preco) && (
+                        <span style={{ fontSize: '14px', color: '#9ca3af', textDecoration: 'line-through', fontWeight: '600' }}>
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(p.precoAntigo))}
+                        </span>
+                      )}
+                      <span style={{ fontSize: '18px', fontWeight: '900', color: tema.primaria }}>
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(p.preco) || 0)}
+                      </span>
+                    </div>
                     
                     {esgotado ? (
                       <button 
