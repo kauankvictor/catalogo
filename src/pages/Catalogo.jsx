@@ -151,7 +151,7 @@ export default function Catalogo() {
             <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '16px' }}>
               <h3 style={{ fontSize: '13px', color: tema.textoSecundario, margin: '0 0 8px 0', textTransform: 'uppercase', fontWeight: 'bold' }}>Endereço da Loja</h3>
               <p style={{ margin: 0, fontSize: '15px', color: tema.textoPrincipal, lineHeight: '1.5' }}>
-                Rua Exemplo, 123, Bairro Centro<br/>Natal, RN
+                Rua Pedro Candido de Macedo, 522, Bairro Ivan Bezerra<br/>Parelhas, RN
               </p>
             </div>
           </div>
