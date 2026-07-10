@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../firebaseConfig'
-import { Search, ShoppingBag, X, Image as ImageIcon, ChevronLeft, ChevronRight, Maximize2, Info, Star, ShoppingCart, Plus, Minus, Trash2 } from 'lucide-react'
+import { Search, ShoppingBag, X, Image as ImageIcon, ChevronLeft, ChevronRight, Maximize2, Info, Star, ShoppingCart, Plus, Minus, Trash2, LayoutGrid } from 'lucide-react'
 
 export default function Catalogo() {
   const [produtos, setProdutos] = useState([])
@@ -14,6 +14,7 @@ export default function Catalogo() {
   const [produtoSelecionado, setProdutoSelecionado] = useState(null)
   const [fotoExpandidaIndex, setFotoExpandidaIndex] = useState(null)
   const [modalInfoAberta, setModalInfoAberta] = useState(false)
+  const [modalCategoriasAberta, setModalCategoriasAberta] = useState(false) // NOVO: Estado para a tela de categorias
 
   const [carrinho, setCarrinho] = useState([])
   const [carrinhoAberto, setCarrinhoAberto] = useState(false)
@@ -184,6 +185,51 @@ export default function Catalogo() {
           </div>
         )}
       </div>
+
+      {/* NOVO: Modal de Categorias (Estilo Tela Deslizante) */}
+      {modalCategoriasAberta && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 5000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setModalCategoriasAberta(false)}>
+          <div style={{ background: 'white', width: '100%', maxWidth: '600px', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', padding: '24px', display: 'flex', flexDirection: 'column', maxHeight: '70vh', boxShadow: '0 -10px 25px rgba(0,0,0,0.1)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '900', color: tema.textoPrincipal, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <LayoutGrid size={24} color={tema.primaria} /> Todas as Categorias
+              </h2>
+              <button onClick={() => setModalCategoriasAberta(false)} style={{ background: '#f3f4f6', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            
+            <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '4px' }}>
+              {categoriasUnicas.map(cat => (
+                <button
+                  key={`modal-${cat}`}
+                  onClick={() => {
+                    setCategoriaAtiva(cat)
+                    setModalCategoriasAberta(false)
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }}
+                  style={{
+                    padding: '16px 20px',
+                    borderRadius: '16px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    textAlign: 'left',
+                    background: categoriaAtiva === cat ? '#fce7f3' : '#f9fafb',
+                    color: categoriaAtiva === cat ? tema.primaria : tema.textoPrincipal,
+                    border: categoriaAtiva === cat ? `2px solid ${tema.primaria}` : '2px solid transparent',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  {cat}
+                  {categoriaAtiva === cat && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: tema.primaria }}></div>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal do Carrinho */}
       {carrinhoAberto && (
@@ -407,6 +453,21 @@ export default function Catalogo() {
             </div>
           </div>
         )}
+
+        {/* Nova Seção de Categorias com Título e Botão Ver Todas */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: isMobile ? '0 16px' : '0' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: '900', color: tema.textoPrincipal, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <LayoutGrid size={20} color={tema.primaria} /> Categorias
+          </h2>
+          {categoriasUnicas.length > 3 && (
+            <button 
+              onClick={() => setModalCategoriasAberta(true)} 
+              style={{ background: 'transparent', border: 'none', color: tema.primaria, fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', padding: 0 }}
+            >
+              Ver todas
+            </button>
+          )}
+        </div>
 
         <div style={{ display: 'flex', overflowX: 'auto', gap: '10px', paddingBottom: '16px', marginBottom: '24px', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', paddingLeft: isMobile ? '16px' : '0', paddingRight: isMobile ? '16px' : '0' }}>
           {categoriasUnicas.map(cat => (
