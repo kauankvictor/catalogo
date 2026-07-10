@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../firebaseConfig'
-import { Search, ShoppingBag, X, Image as ImageIcon, ChevronLeft, ChevronRight, Maximize2, Info, Star, ShoppingCart, Plus, Minus, Trash2, LayoutGrid } from 'lucide-react'
+import { Search, ShoppingBag, X, Image as ImageIcon, ChevronLeft, ChevronRight, Maximize2, Info, Star, ShoppingCart, Plus, Minus, Trash2, LayoutGrid, MapPin } from 'lucide-react'
 
 export default function Catalogo() {
   const [produtos, setProdutos] = useState([])
@@ -53,6 +53,19 @@ export default function Catalogo() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  // Efeito novo para travar a rolagem da página de fundo quando um modal estiver aberto
+  useEffect(() => {
+    const algumModalAberto = produtoSelecionado || modalInfoAberta || modalCategoriasAberta || carrinhoAberto || fotoExpandidaIndex !== null
+    if (algumModalAberto) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [produtoSelecionado, modalInfoAberta, modalCategoriasAberta, carrinhoAberto, fotoExpandidaIndex])
+
   const tema = {
     fundoBase: '#f9fafb',
     fundoCard: '#ffffff',
@@ -63,7 +76,10 @@ export default function Catalogo() {
     borda: '#f3f4f6'
   }
 
-  const categoriasUnicas = ['Todos', ...new Set(produtos.map(p => p.categoria || 'Sem Categoria'))]
+  // Lógica corrigida para ordem alfabética das categorias
+  const categoriasExtraidas = [...new Set(produtos.map(p => p.categoria || 'Sem Categoria'))]
+  categoriasExtraidas.sort((a, b) => a.localeCompare(b))
+  const categoriasUnicas = ['Todos', ...categoriasExtraidas]
 
   const produtosFiltrados = produtos.filter(p => {
     const nomeSeguro = p.nome || ''
@@ -308,14 +324,50 @@ export default function Catalogo() {
         </div>
       )}
 
+      {/* Modal de Informações da Loja com Google Maps */}
       {modalInfoAberta && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(5px)', zIndex: 5000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }} onClick={() => setModalInfoAberta(false)}>
-          <div style={{ background: 'white', borderRadius: '24px', padding: '32px 24px', width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: 'white', borderRadius: '24px', padding: '32px 24px', width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }} onClick={e => e.stopPropagation()}>
             <button onClick={() => setModalInfoAberta(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: '#f3f4f6', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: tema.primaria }}><X size={20} /></button>
-            <h2 style={{ margin: 0, color: tema.textoPrincipal, fontSize: '22px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800' }}><Info size={24} color={tema.primaria} /> Informações</h2>
-            <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '16px' }}>
-              <h3 style={{ fontSize: '13px', color: tema.textoSecundario, margin: '0 0 8px 0', textTransform: 'uppercase', fontWeight: 'bold' }}>Endereço da Loja</h3>
-              <p style={{ margin: 0, fontSize: '15px', color: tema.textoPrincipal, lineHeight: '1.5' }}>Rua Exemplo, 123, Bairro Centro<br/>Natal, RN</p>
+            
+            <h2 style={{ margin: 0, color: tema.textoPrincipal, fontSize: '22px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800' }}>
+              <Info size={24} color={tema.primaria} /> Informações
+            </h2>
+            
+            <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <MapPin size={24} color={tema.primaria} style={{ flexShrink: 0 }} />
+                <div>
+                  <h3 style={{ fontSize: '13px', color: tema.textoSecundario, margin: '0 0 4px 0', textTransform: 'uppercase', fontWeight: 'bold' }}>Endereço da Loja</h3>
+                  <p style={{ margin: 0, fontSize: '15px', color: tema.textoPrincipal, lineHeight: '1.5' }}>
+                    Rua Pedro Candido de Macedo, 522<br/>
+                    Bairro Ivan Bezerra<br/>
+                    Parelhas, RN
+                  </p>
+                </div>
+              </div>
+              
+              <div style={{ width: '100%', height: '200px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+                <iframe 
+                  width="100%" 
+                  height="100%" 
+                  frameBorder="0" 
+                  scrolling="no" 
+                  marginHeight="0" 
+                  marginWidth="0" 
+                  src="https://maps.google.com/maps?q=Rua%20Pedro%20Candido%20de%20Macedo%2C%20522%2C%20Bairro%20Ivan%20Bezerra%2C%20Parelhas%20RN&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                  title="Mapa da Loja"
+                ></iframe>
+              </div>
+              
+              <a 
+                href="https://www.google.com/maps/search/?api=1&query=Rua+Pedro+Candido+de+Macedo,+522,+Bairro+Ivan+Bezerra,+Parelhas+-+RN" 
+                target="_blank" 
+                rel="noreferrer" 
+                style={{ display: 'block', textAlign: 'center', background: tema.primaria, color: 'white', padding: '12px', borderRadius: '12px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px', transition: 'background 0.2s' }}
+              >
+                Abrir no Google Maps
+              </a>
             </div>
           </div>
         </div>
