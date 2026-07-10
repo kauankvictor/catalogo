@@ -14,7 +14,7 @@ export default function Catalogo() {
   const [produtoSelecionado, setProdutoSelecionado] = useState(null)
   const [fotoExpandidaIndex, setFotoExpandidaIndex] = useState(null)
   const [modalInfoAberta, setModalInfoAberta] = useState(false)
-  const [modalCategoriasAberta, setModalCategoriasAberta] = useState(false) // NOVO: Estado para a tela de categorias
+  const [modalCategoriasAberta, setModalCategoriasAberta] = useState(false)
 
   const [carrinho, setCarrinho] = useState([])
   const [carrinhoAberto, setCarrinhoAberto] = useState(false)
@@ -70,10 +70,10 @@ export default function Catalogo() {
     const categorySegura = p.categoria || 'Sem Categoria'
     const batePesquisa = nomeSeguro.toLowerCase().includes(pesquisa.toLowerCase())
     const bateCategoria = categoriaAtiva === 'Todos' || categorySegura === categoriaAtiva
-    return batePesquisa && bateCategoria
+    return batePesquisa && bateCategoria && p.visivelCatalogo !== false
   })
 
-  const produtosDestaqueGeral = produtos.filter(p => p.destaque === true)
+  const produtosDestaqueGeral = produtos.filter(p => p.destaque === true && p.visivelCatalogo !== false)
   const eventosUnicos = [...new Set(produtosDestaqueGeral.map(p => p.nomeDestaque || 'Destaques'))]
   const eventoAtual = eventosUnicos.includes(eventoAtivo) ? eventoAtivo : eventosUnicos[0]
   const produtosVitrine = produtosDestaqueGeral.filter(p => (p.nomeDestaque || 'Destaques') === eventoAtual)
@@ -90,10 +90,20 @@ export default function Catalogo() {
   const adicionarAoCarrinho = (produto) => {
     setCarrinho(prev => {
       const existe = prev.find(item => item.id === produto.id)
+      const estoqueDisponivel = Number(produto.quantidade) || 0
+
       if (existe) {
+        if (existe.qnt >= estoqueDisponivel) {
+          alert(`Temos apenas ${estoqueDisponivel} unidades de ${produto.nome} em estoque.`)
+          return prev
+        }
         return prev.map(item => item.id === produto.id ? { ...item, qnt: item.qnt + 1 } : item)
       }
-      return [...prev, { ...produto, qnt: 1 }]
+      
+      if (estoqueDisponivel > 0) {
+        return [...prev, { ...produto, qnt: 1 }]
+      }
+      return prev
     })
     setProdutoSelecionado(null)
   }
@@ -103,6 +113,12 @@ export default function Catalogo() {
       return prev.map(item => {
         if (item.id === id) {
           const novaQnt = item.qnt + delta
+          const estoqueDisponivel = Number(item.quantidade) || 0
+          
+          if (novaQnt > estoqueDisponivel) {
+            alert(`Estoque máximo atingido: ${estoqueDisponivel} unidades disponíveis.`)
+            return item
+          }
           return novaQnt > 0 ? { ...item, qnt: novaQnt } : item
         }
         return item
@@ -124,7 +140,8 @@ export default function Catalogo() {
     let mensagem = `Olá! Gostaria de fazer o seguinte pedido na *${nomeLoja}*:\n\n`
     carrinho.forEach(item => {
       const precoFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(item.preco))
-      mensagem += `• ${item.qnt}x ${item.nome} (${precoFormatado})\n`
+      const infoCodigo = item.codigoBarras ? ` [Cód: ${item.codigoBarras}]` : ''
+      mensagem += `* ${item.qnt}x ${item.nome}${infoCodigo} (${precoFormatado})\n`
     })
     
     const totalFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorTotalCarrinho)
@@ -173,7 +190,6 @@ export default function Catalogo() {
   return (
     <div style={{ minHeight: '100vh', background: tema.fundoBase, color: tema.textoPrincipal, fontFamily: "'Inter', sans-serif", paddingBottom: '100px' }}>
       
-      {/* Botão Flutuante do Carrinho */}
       <div 
         onClick={() => setCarrinhoAberto(true)}
         style={{ position: 'fixed', bottom: '24px', right: '24px', background: tema.primaria, color: 'white', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 10px 25px rgba(219, 39, 119, 0.4)', zIndex: 3000 }}
@@ -186,7 +202,6 @@ export default function Catalogo() {
         )}
       </div>
 
-      {/* NOVO: Modal de Categorias (Estilo Tela Deslizante) */}
       {modalCategoriasAberta && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 5000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setModalCategoriasAberta(false)}>
           <div style={{ background: 'white', width: '100%', maxWidth: '600px', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', padding: '24px', display: 'flex', flexDirection: 'column', maxHeight: '70vh', boxShadow: '0 -10px 25px rgba(0,0,0,0.1)' }} onClick={e => e.stopPropagation()}>
@@ -231,7 +246,6 @@ export default function Catalogo() {
         </div>
       )}
 
-      {/* Modal do Carrinho */}
       {carrinhoAberto && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 5000, display: 'flex', justifyContent: 'flex-end' }} onClick={() => setCarrinhoAberto(false)}>
           <div style={{ background: 'white', width: '100%', maxWidth: '400px', height: '100%', display: 'flex', flexDirection: 'column', boxShadow: '-10px 0 25px rgba(0,0,0,0.1)' }} onClick={e => e.stopPropagation()}>
@@ -294,7 +308,6 @@ export default function Catalogo() {
         </div>
       )}
 
-      {/* Modal Informações Loja */}
       {modalInfoAberta && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(5px)', zIndex: 5000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }} onClick={() => setModalInfoAberta(false)}>
           <div style={{ background: 'white', borderRadius: '24px', padding: '32px 24px', width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }} onClick={e => e.stopPropagation()}>
@@ -308,7 +321,6 @@ export default function Catalogo() {
         </div>
       )}
 
-      {/* Modal Ampliar Foto */}
       {fotoExpandidaIndex !== null && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.95)', zIndex: 6000, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
           <button onClick={() => setFotoExpandidaIndex(null)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 6010 }}><X size={24} /></button>
@@ -325,7 +337,6 @@ export default function Catalogo() {
         </div>
       )}
 
-      {/* Modal Detalhes do Produto */}
       {produtoSelecionado && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(6px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 4000, padding: '20px' }} onClick={() => setProdutoSelecionado(null)}>
           <div style={{ background: 'white', borderRadius: '24px', width: '100%', maxWidth: '450px', maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', position: 'relative', border: '1px solid #f3f4f6' }} onClick={(e) => e.stopPropagation()}>
@@ -446,6 +457,7 @@ export default function Catalogo() {
                       ) : (
                         <button style={{ width: '100%', background: tema.primaria, color: 'white', border: 'none', padding: '10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 4px 10px rgba(219, 39, 119, 0.2)' }} onClick={(e) => { e.stopPropagation(); setProdutoSelecionado(p); }}>Ver Detalhes</button>
                       )}
+
                     </div>
                   </div>
                 )
@@ -454,7 +466,6 @@ export default function Catalogo() {
           </div>
         )}
 
-        {/* Nova Seção de Categorias com Título e Botão Ver Todas */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: isMobile ? '0 16px' : '0' }}>
           <h2 style={{ fontSize: '18px', fontWeight: '900', color: tema.textoPrincipal, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <LayoutGrid size={20} color={tema.primaria} /> Categorias
