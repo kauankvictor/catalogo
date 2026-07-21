@@ -1,17 +1,21 @@
 import { useState, useEffect } from 'react'
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
 import { db } from '../firebaseConfig'
-import { Search, ShoppingBag, X, Image as ImageIcon, ChevronLeft, ChevronRight, Maximize2, Info, Star, ShoppingCart, Plus, Minus, Trash2, LayoutGrid, MapPin } from 'lucide-react'
+import { Search, ShoppingBag, X, Image as ImageIcon, ChevronLeft, ChevronRight, Maximize2, Info, Star, ShoppingCart, Plus, Minus, Trash2, LayoutGrid, Share2, Globe, Link as LinkIcon, MessageCircle } from 'lucide-react'
 
 export default function Catalogo() {
   const [produtos, setProdutos] = useState([])
+  const [carregando, setCarregando] = useState(true)
+  
   const [nomeLoja, setNomeLoja] = useState('Storefy Catálogo')
   const [corPrincipal, setCorPrincipal] = useState('#db2777')
-  const [enderecoLoja, setEnderecoLoja] = useState('Endereço não cadastrado')
+  const [lojaAberta, setLojaAberta] = useState(true)
+  const [infoEntrega, setInfoEntrega] = useState('Nenhuma informação cadastrada.')
+  const [msgWhatsApp, setMsgWhatsApp] = useState('Olá! Gostaria de fazer o seguinte pedido:')
+  const [redesSociais, setRedesSociais] = useState({ instagram: '', facebook: '', tiktok: '' })
+  const [banners, setBanners] = useState([])
   const [telefoneLoja, setTelefoneLoja] = useState('')
-  const [mapaUrl, setMapaUrl] = useState('')
 
-  const [carregando, setCarregando] = useState(true)
   const [pesquisa, setPesquisa] = useState('')
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos')
   const [eventoAtivo, setEventoAtivo] = useState('')
@@ -39,7 +43,6 @@ export default function Catalogo() {
         const produtosDoBanco = queryProdutos.docs.map(doc => ({ id: doc.id, ...doc.data() }))
         setProdutos(produtosDoBanco)
 
-        // Busca configurações customizadas direto da nuvem
         const docRefLoja = doc(db, "configuracoes", "loja")
         const docSnapLoja = await getDoc(docRefLoja)
         
@@ -49,9 +52,12 @@ export default function Catalogo() {
           else if (config.nomeLoja) setNomeLoja(config.nomeLoja)
           
           if (config.corPrincipal) setCorPrincipal(config.corPrincipal)
-          if (config.endereco) setEnderecoLoja(config.endereco)
+          if (config.lojaAberta !== undefined) setLojaAberta(config.lojaAberta)
+          if (config.infoEntrega) setInfoEntrega(config.infoEntrega)
+          if (config.msgWhatsApp) setMsgWhatsApp(config.msgWhatsApp)
+          if (config.redesSociais) setRedesSociais(config.redesSociais)
+          if (config.banners) setBanners(config.banners)
           if (config.telefone) setTelefoneLoja(config.telefone)
-          if (config.mapaUrl) setMapaUrl(config.mapaUrl)
         }
       } catch (error) {
         console.error("Erro ao carregar o catálogo de produtos:", error)
@@ -76,7 +82,6 @@ export default function Catalogo() {
     }
   }, [produtoSelecionado, modalInfoAberta, modalCategoriasAberta, carrinhoAberto, fotoExpandidaIndex])
 
-  // O tema agora é alimentado pela variável de estado corPrincipal vinda do Firebase
   const tema = {
     fundoBase: '#f9fafb',
     fundoCard: '#ffffff',
@@ -86,10 +91,9 @@ export default function Catalogo() {
     borda: '#f3f4f6'
   }
 
-  // Função para converter código hexadecimal em rgba para efeitos de fundo
   const hexToRgba = (hex, opacity) => {
     let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    if (!result) return `rgba(219, 39, 119, ${opacity})`; // fallback
+    if (!result) return `rgba(219, 39, 119, ${opacity})`; 
     return `rgba(${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}, ${opacity})`;
   }
 
@@ -166,10 +170,10 @@ export default function Catalogo() {
   const quantidadeTotalCarrinho = carrinho.reduce((acc, item) => acc + item.qnt, 0)
 
   const finalizarPedidoWhatsApp = () => {
-    if (carrinho.length === 0) return
-    const numeroParaMandar = telefoneLoja ? telefoneLoja.replace(/\D/g, '') : "5584996346780"
+    if (carrinho.length === 0 || !lojaAberta) return
+    const numeroParaMandar = telefoneLoja ? telefoneLoja.replace(/\D/g, '') : ""
     
-    let mensagem = `Olá! Gostaria de fazer o seguinte pedido na *${nomeLoja}*:\n\n`
+    let mensagem = `${msgWhatsApp}\n\n`
     carrinho.forEach(item => {
       const precoFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(item.preco))
       const infoCodigo = item.codigoBarras ? ` [Cód: ${item.codigoBarras}]` : ''
@@ -179,7 +183,7 @@ export default function Catalogo() {
     const totalFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorTotalCarrinho)
     mensagem += `\n*Valor Total: ${totalFormatado}*`
     
-    const url = `https://wa.me/${numeroParaMandar}?text=${encodeURIComponent(mensagem)}`
+    const url = `https://wa.me/55${numeroParaMandar}?text=${encodeURIComponent(mensagem)}`
     window.open(url, '_blank')
   }
 
@@ -222,6 +226,12 @@ export default function Catalogo() {
   return (
     <div style={{ minHeight: '100vh', background: tema.fundoBase, color: tema.textoPrincipal, fontFamily: "'Inter', sans-serif", paddingBottom: '100px' }}>
       
+      {!lojaAberta && (
+        <div style={{ background: '#ef4444', color: 'white', padding: '12px', textAlign: 'center', fontWeight: 'bold', fontSize: '14px', position: 'sticky', top: 0, zIndex: 2000 }}>
+          Loja temporariamente fechada para novos pedidos.
+        </div>
+      )}
+
       <div 
         onClick={() => setCarrinhoAberto(true)}
         style={{ position: 'fixed', bottom: '24px', right: '24px', background: tema.primaria, color: 'white', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: `0 10px 25px ${hexToRgba(tema.primaria, 0.4)}`, zIndex: 3000 }}
@@ -328,55 +338,37 @@ export default function Catalogo() {
                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorTotalCarrinho)}
                   </span>
                 </div>
-                <button 
-                  onClick={finalizarPedidoWhatsApp}
-                  style={{ width: '100%', background: '#10b981', color: 'white', border: 'none', padding: '18px', borderRadius: '16px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                >
-                  <ShoppingCart size={22} /> Enviar Pedido
-                </button>
+                {lojaAberta ? (
+                  <button 
+                    onClick={finalizarPedidoWhatsApp}
+                    style={{ width: '100%', background: '#10b981', color: 'white', border: 'none', padding: '18px', borderRadius: '16px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  >
+                    <MessageCircle size={22} /> Enviar Pedido
+                  </button>
+                ) : (
+                  <button disabled style={{ width: '100%', background: '#f3f4f6', color: '#9ca3af', border: 'none', padding: '18px', borderRadius: '16px', fontSize: '16px', fontWeight: 'bold', cursor: 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    Loja Fechada
+                  </button>
+                )}
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Modal de Informações da Loja */}
       {modalInfoAberta && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(5px)', zIndex: 5000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }} onClick={() => setModalInfoAberta(false)}>
           <div style={{ background: 'white', borderRadius: '24px', padding: '32px 24px', width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }} onClick={e => e.stopPropagation()}>
             <button onClick={() => setModalInfoAberta(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: '#f3f4f6', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: tema.primaria }}><X size={20} /></button>
             
             <h2 style={{ margin: 0, color: tema.textoPrincipal, fontSize: '22px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800' }}>
-              <Info size={24} color={tema.primaria} /> Informações
+              <Info size={24} color={tema.primaria} /> Entrega e Retirada
             </h2>
             
-            <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <MapPin size={24} color={tema.primaria} style={{ flexShrink: 0 }} />
-                <div>
-                  <h3 style={{ fontSize: '13px', color: tema.textoSecundario, margin: '0 0 4px 0', textTransform: 'uppercase', fontWeight: 'bold' }}>Endereço da Loja</h3>
-                  <p style={{ margin: 0, fontSize: '15px', color: tema.textoPrincipal, lineHeight: '1.5' }}>
-                    {enderecoLoja}
-                  </p>
-                </div>
-              </div>
-              
-              <div style={{ width: '100%', height: '200px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
-                {mapaUrl ? (
-                  <iframe width="100%" height="100%" frameBorder="0" scrolling="no" src={mapaUrl} title="Mapa da Loja"></iframe>
-                ) : (
-                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e5e7eb', color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px', boxSizing: 'border-box' }}>Mapa não configurado pelo lojista.</div>
-                )}
-              </div>
-              
-              <a 
-                href={mapaUrl || "#"} 
-                target="_blank" 
-                rel="noreferrer" 
-                style={{ display: 'block', textAlign: 'center', background: tema.primaria, color: 'white', padding: '12px', borderRadius: '12px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px', transition: 'background 0.2s', opacity: mapaUrl ? 1 : 0.5, pointerEvents: mapaUrl ? 'auto' : 'none' }}
-              >
-                Abrir no Google Maps
-              </a>
+            <div style={{ background: '#f9fafb', padding: '20px', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
+              <p style={{ margin: 0, fontSize: '15px', color: tema.textoPrincipal, lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+                {infoEntrega}
+              </p>
             </div>
           </div>
         </div>
@@ -466,6 +458,15 @@ export default function Catalogo() {
 
       <main style={{ padding: isMobile ? '24px 0' : '30px 20px', maxWidth: '1200px', margin: '0 auto', overflow: 'hidden' }}>
         
+        {/* CARROSSEL DE BANNERS */}
+        {banners.length > 0 && pesquisa === '' && categoriaAtiva === 'Todos' && (
+          <div style={{ display: 'flex', overflowX: 'auto', gap: '16px', marginBottom: '32px', scrollSnapType: 'x mandatory', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', paddingLeft: isMobile ? '16px' : '0', paddingRight: isMobile ? '16px' : '0' }}>
+            {banners.map((src, i) => (
+              <img key={i} src={src} alt="Banner Promocional" style={{ width: isMobile ? '90%' : '100%', minWidth: isMobile ? '90%' : '100%', height: isMobile ? '160px' : '280px', objectFit: 'cover', borderRadius: '16px', scrollSnapAlign: 'start', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }} />
+            ))}
+          </div>
+        )}
+
         {mostrarVitrine && (
           <div style={{ marginBottom: '40px' }}>
             {eventosUnicos.length > 1 && (
@@ -592,6 +593,34 @@ export default function Catalogo() {
           )}
         </div>
       </main>
+
+      {/* RODAPÉ E REDES SOCIAIS */}
+      <footer style={{ borderTop: '1px solid #e5e7eb', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', background: 'white' }}>
+        <h3 style={{ margin: 0, fontSize: '18px', color: tema.textoPrincipal, fontWeight: '900' }}>{nomeLoja}</h3>
+        
+        <div style={{ display: 'flex', gap: '16px' }}>
+          {redesSociais.instagram && (
+            <a href={redesSociais.instagram.startsWith('http') ? redesSociais.instagram : `https://${redesSociais.instagram}`} target="_blank" rel="noreferrer" style={{ width: '40px', height: '40px', borderRadius: '50%', background: hexToRgba(tema.primaria, 0.1), color: tema.primaria, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.2s' }}>
+              <Share2 size={20} />
+            </a>
+          )}
+          {redesSociais.facebook && (
+            <a href={redesSociais.facebook.startsWith('http') ? redesSociais.facebook : `https://${redesSociais.facebook}`} target="_blank" rel="noreferrer" style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#dbeafe', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.2s' }}>
+              <Globe size={20} />
+            </a>
+          )}
+          {redesSociais.tiktok && (
+            <a href={redesSociais.tiktok.startsWith('http') ? redesSociais.tiktok : `https://${redesSociais.tiktok}`} target="_blank" rel="noreferrer" style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#f3f4f6', color: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.2s' }}>
+              <LinkIcon size={20} />
+            </a>
+          )}
+        </div>
+        
+        <p style={{ margin: 0, fontSize: '12px', color: tema.textoSecundario, textAlign: 'center' }}>
+          Sistema de catálogo digital otimizado.
+        </p>
+      </footer>
+
     </div>
   )
 }
