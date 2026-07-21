@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
 import { db } from '../firebaseConfig'
 import { Search, ShoppingBag, X, Image as ImageIcon, ChevronLeft, ChevronRight, Maximize2, Info, Star, ShoppingCart, Plus, Minus, Trash2, LayoutGrid, MapPin } from 'lucide-react'
 
 export default function Catalogo() {
   const [produtos, setProdutos] = useState([])
-  const [nomeLoja, setNomeLoja] = useState('Paulinha variedades')
+  const [nomeLoja, setNomeLoja] = useState('Storefy Catálogo')
+  const [corPrincipal, setCorPrincipal] = useState('#db2777')
+  const [enderecoLoja, setEnderecoLoja] = useState('Endereço não cadastrado')
+  const [telefoneLoja, setTelefoneLoja] = useState('')
+  const [mapaUrl, setMapaUrl] = useState('')
+
   const [carregando, setCarregando] = useState(true)
   const [pesquisa, setPesquisa] = useState('')
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos')
@@ -34,13 +39,19 @@ export default function Catalogo() {
         const produtosDoBanco = queryProdutos.docs.map(doc => ({ id: doc.id, ...doc.data() }))
         setProdutos(produtosDoBanco)
 
-        try {
-          const dadosLojaSalvos = JSON.parse(localStorage.getItem('storefy_dados_loja') || '{}')
-          if (dadosLojaSalvos && dadosLojaSalvos.nomeLoja) {
-            setNomeLoja(dadosLojaSalvos.nomeLoja)
-          }
-        } catch (e) {
-          console.error("Erro ao ler configurações locais.")
+        // Busca configurações customizadas direto da nuvem
+        const docRefLoja = doc(db, "configuracoes", "loja")
+        const docSnapLoja = await getDoc(docRefLoja)
+        
+        if (docSnapLoja.exists()) {
+          const config = docSnapLoja.data()
+          if (config.nomeCatalogo) setNomeLoja(config.nomeCatalogo)
+          else if (config.nomeLoja) setNomeLoja(config.nomeLoja)
+          
+          if (config.corPrincipal) setCorPrincipal(config.corPrincipal)
+          if (config.endereco) setEnderecoLoja(config.endereco)
+          if (config.telefone) setTelefoneLoja(config.telefone)
+          if (config.mapaUrl) setMapaUrl(config.mapaUrl)
         }
       } catch (error) {
         console.error("Erro ao carregar o catálogo de produtos:", error)
@@ -53,7 +64,6 @@ export default function Catalogo() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  // Efeito novo para travar a rolagem da página de fundo quando um modal estiver aberto
   useEffect(() => {
     const algumModalAberto = produtoSelecionado || modalInfoAberta || modalCategoriasAberta || carrinhoAberto || fotoExpandidaIndex !== null
     if (algumModalAberto) {
@@ -66,17 +76,23 @@ export default function Catalogo() {
     }
   }, [produtoSelecionado, modalInfoAberta, modalCategoriasAberta, carrinhoAberto, fotoExpandidaIndex])
 
+  // O tema agora é alimentado pela variável de estado corPrincipal vinda do Firebase
   const tema = {
     fundoBase: '#f9fafb',
     fundoCard: '#ffffff',
-    primaria: '#db2777',
-    primariaHover: '#be185d',
+    primaria: corPrincipal,
     textoPrincipal: '#1f2937',
     textoSecundario: '#6b7280',
     borda: '#f3f4f6'
   }
 
-  // Lógica corrigida para ordem alfabética das categorias
+  // Função para converter código hexadecimal em rgba para efeitos de fundo
+  const hexToRgba = (hex, opacity) => {
+    let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!result) return `rgba(219, 39, 119, ${opacity})`; // fallback
+    return `rgba(${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}, ${opacity})`;
+  }
+
   const categoriasExtraidas = [...new Set(produtos.map(p => p.categoria || 'Sem Categoria'))]
   categoriasExtraidas.sort((a, b) => a.localeCompare(b))
   const categoriasUnicas = ['Todos', ...categoriasExtraidas]
@@ -151,7 +167,7 @@ export default function Catalogo() {
 
   const finalizarPedidoWhatsApp = () => {
     if (carrinho.length === 0) return
-    const numeroWhatsApp = "5584996346780" 
+    const numeroParaMandar = telefoneLoja ? telefoneLoja.replace(/\D/g, '') : "5584996346780"
     
     let mensagem = `Olá! Gostaria de fazer o seguinte pedido na *${nomeLoja}*:\n\n`
     carrinho.forEach(item => {
@@ -163,7 +179,7 @@ export default function Catalogo() {
     const totalFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorTotalCarrinho)
     mensagem += `\n*Valor Total: ${totalFormatado}*`
     
-    const url = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensagem)}`
+    const url = `https://wa.me/${numeroParaMandar}?text=${encodeURIComponent(mensagem)}`
     window.open(url, '_blank')
   }
 
@@ -197,7 +213,7 @@ export default function Catalogo() {
 
   if (carregando) {
     return (
-      <div style={{ minHeight: '100vh', background: tema.fundoBase, display: 'flex', justifyContent: 'center', alignItems: 'center', color: tema.primaria, fontWeight: 'bold', fontFamily: "'Inter', sans-serif" }}>
+      <div style={{ minHeight: '100vh', background: tema.fundoBase, display: 'flex', justifyContent: 'center', alignItems: 'center', color: tema.textoSecundario, fontWeight: 'bold', fontFamily: "'Inter', sans-serif" }}>
         Preparando a vitrine...
       </div>
     )
@@ -208,7 +224,7 @@ export default function Catalogo() {
       
       <div 
         onClick={() => setCarrinhoAberto(true)}
-        style={{ position: 'fixed', bottom: '24px', right: '24px', background: tema.primaria, color: 'white', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 10px 25px rgba(219, 39, 119, 0.4)', zIndex: 3000 }}
+        style={{ position: 'fixed', bottom: '24px', right: '24px', background: tema.primaria, color: 'white', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: `0 10px 25px ${hexToRgba(tema.primaria, 0.4)}`, zIndex: 3000 }}
       >
         <ShoppingCart size={28} />
         {quantidadeTotalCarrinho > 0 && (
@@ -243,7 +259,7 @@ export default function Catalogo() {
                     fontSize: '16px',
                     fontWeight: 'bold',
                     textAlign: 'left',
-                    background: categoriaAtiva === cat ? '#fce7f3' : '#f9fafb',
+                    background: categoriaAtiva === cat ? hexToRgba(tema.primaria, 0.1) : '#f9fafb',
                     color: categoriaAtiva === cat ? tema.primaria : tema.textoPrincipal,
                     border: categoriaAtiva === cat ? `2px solid ${tema.primaria}` : '2px solid transparent',
                     cursor: 'pointer',
@@ -324,7 +340,7 @@ export default function Catalogo() {
         </div>
       )}
 
-      {/* Modal de Informações da Loja com Google Maps */}
+      {/* Modal de Informações da Loja */}
       {modalInfoAberta && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(5px)', zIndex: 5000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }} onClick={() => setModalInfoAberta(false)}>
           <div style={{ background: 'white', borderRadius: '24px', padding: '32px 24px', width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }} onClick={e => e.stopPropagation()}>
@@ -340,31 +356,24 @@ export default function Catalogo() {
                 <div>
                   <h3 style={{ fontSize: '13px', color: tema.textoSecundario, margin: '0 0 4px 0', textTransform: 'uppercase', fontWeight: 'bold' }}>Endereço da Loja</h3>
                   <p style={{ margin: 0, fontSize: '15px', color: tema.textoPrincipal, lineHeight: '1.5' }}>
-                    Rua Pedro Candido de Macedo, 522<br/>
-                    Bairro Ivan Bezerra<br/>
-                    Parelhas, RN
+                    {enderecoLoja}
                   </p>
                 </div>
               </div>
               
               <div style={{ width: '100%', height: '200px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
-                <iframe 
-                  width="100%" 
-                  height="100%" 
-                  frameBorder="0" 
-                  scrolling="no" 
-                  marginHeight="0" 
-                  marginWidth="0" 
-                  src="https://maps.google.com/maps?q=Rua%20Pedro%20Candido%20de%20Macedo%2C%20522%2C%20Bairro%20Ivan%20Bezerra%2C%20Parelhas%20RN&t=&z=15&ie=UTF8&iwloc=&output=embed"
-                  title="Mapa da Loja"
-                ></iframe>
+                {mapaUrl ? (
+                  <iframe width="100%" height="100%" frameBorder="0" scrolling="no" src={mapaUrl} title="Mapa da Loja"></iframe>
+                ) : (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e5e7eb', color: '#9ca3af', fontSize: '14px', textAlign: 'center', padding: '20px', boxSizing: 'border-box' }}>Mapa não configurado pelo lojista.</div>
+                )}
               </div>
               
               <a 
-                href="https://www.google.com/maps/search/?api=1&query=Rua+Pedro+Candido+de+Macedo,+522,+Bairro+Ivan+Bezerra,+Parelhas+-+RN" 
+                href={mapaUrl || "#"} 
                 target="_blank" 
                 rel="noreferrer" 
-                style={{ display: 'block', textAlign: 'center', background: tema.primaria, color: 'white', padding: '12px', borderRadius: '12px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px', transition: 'background 0.2s' }}
+                style={{ display: 'block', textAlign: 'center', background: tema.primaria, color: 'white', padding: '12px', borderRadius: '12px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px', transition: 'background 0.2s', opacity: mapaUrl ? 1 : 0.5, pointerEvents: mapaUrl ? 'auto' : 'none' }}
               >
                 Abrir no Google Maps
               </a>
@@ -412,7 +421,7 @@ export default function Catalogo() {
             
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <span style={{ fontSize: '11px', fontWeight: 'bold', color: tema.primaria, textTransform: 'uppercase', letterSpacing: '1px', background: '#fce7f3', padding: '4px 10px', borderRadius: '12px' }}>{produtoSelecionado.categoria || 'Sem Categoria'}</span>
+                <span style={{ fontSize: '11px', fontWeight: 'bold', color: tema.primaria, textTransform: 'uppercase', letterSpacing: '1px', background: hexToRgba(tema.primaria, 0.1), padding: '4px 10px', borderRadius: '12px' }}>{produtoSelecionado.categoria || 'Sem Categoria'}</span>
                 <h2 style={{ fontSize: '24px', color: tema.textoPrincipal, margin: '12px 0 0 0', fontWeight: '900', lineHeight: '1.2' }}>{produtoSelecionado.nome}</h2>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f9fafb', padding: '16px', borderRadius: '16px' }}>
@@ -484,7 +493,7 @@ export default function Catalogo() {
                 const temDesconto = Number(p.precoAntigo) > Number(p.preco);
 
                 return (
-                  <div key={`destaque-${p.id}`} style={{ minWidth: '160px', maxWidth: '160px', background: tema.fundoCard, borderRadius: '20px', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '2px solid #fce7f3', boxShadow: '0 8px 16px rgba(219, 39, 119, 0.08)', cursor: 'pointer', flexShrink: 0 }} onClick={() => setProdutoSelecionado(p)}>
+                  <div key={`destaque-${p.id}`} style={{ minWidth: '160px', maxWidth: '160px', background: tema.fundoCard, borderRadius: '20px', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: `2px solid ${hexToRgba(tema.primaria, 0.2)}`, boxShadow: `0 8px 16px ${hexToRgba(tema.primaria, 0.08)}`, cursor: 'pointer', flexShrink: 0 }} onClick={() => setProdutoSelecionado(p)}>
                     
                     <div style={{ height: '150px', width: '100%', background: '#ffffff', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', padding: '0', boxSizing: 'border-box', overflow: 'hidden' }}>
                       {temDesconto && <div style={{ position: 'absolute', top: '8px', left: '8px', background: '#ef4444', color: 'white', fontSize: '10px', fontWeight: 'bold', padding: '4px 6px', borderRadius: '6px', zIndex: 5 }}>{Math.round(((Number(p.precoAntigo) - Number(p.preco)) / Number(p.precoAntigo)) * 100)}%</div>}
@@ -507,7 +516,7 @@ export default function Catalogo() {
                       {esgotado ? (
                         <button disabled style={{ width: '100%', background: '#f3f4f6', color: '#9ca3af', border: 'none', padding: '10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', cursor: 'not-allowed', textTransform: 'uppercase' }} onClick={(e) => e.stopPropagation()}>Esgotado</button>
                       ) : (
-                        <button style={{ width: '100%', background: tema.primaria, color: 'white', border: 'none', padding: '10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 4px 10px rgba(219, 39, 119, 0.2)' }} onClick={(e) => { e.stopPropagation(); setProdutoSelecionado(p); }}>Ver Detalhes</button>
+                        <button style={{ width: '100%', background: tema.primaria, color: 'white', border: 'none', padding: '10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', textTransform: 'uppercase', boxShadow: `0 4px 10px ${hexToRgba(tema.primaria, 0.2)}` }} onClick={(e) => { e.stopPropagation(); setProdutoSelecionado(p); }}>Ver Detalhes</button>
                       )}
 
                     </div>
@@ -534,7 +543,7 @@ export default function Catalogo() {
 
         <div style={{ display: 'flex', overflowX: 'auto', gap: '10px', paddingBottom: '16px', marginBottom: '24px', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', paddingLeft: isMobile ? '16px' : '0', paddingRight: isMobile ? '16px' : '0' }}>
           {categoriasUnicas.map(cat => (
-            <button key={cat} onClick={() => setCategoriaAtiva(cat)} style={{ padding: '10px 24px', borderRadius: '16px', whiteSpace: 'nowrap', fontSize: '14px', fontWeight: '700', cursor: 'pointer', border: categoriaAtiva === cat ? 'none' : '1px solid #f3f4f6', background: categoriaAtiva === cat ? tema.primaria : '#ffffff', color: categoriaAtiva === cat ? '#ffffff' : tema.textoPrincipal, boxShadow: categoriaAtiva === cat ? '0 4px 10px rgba(219, 39, 119, 0.2)' : '0 2px 4px rgba(0,0,0,0.02)', transition: 'all 0.2s ease', flexShrink: 0 }}>
+            <button key={cat} onClick={() => setCategoriaAtiva(cat)} style={{ padding: '10px 24px', borderRadius: '16px', whiteSpace: 'nowrap', fontSize: '14px', fontWeight: '700', cursor: 'pointer', border: categoriaAtiva === cat ? 'none' : '1px solid #f3f4f6', background: categoriaAtiva === cat ? tema.primaria : '#ffffff', color: categoriaAtiva === cat ? '#ffffff' : tema.textoPrincipal, boxShadow: categoriaAtiva === cat ? `0 4px 10px ${hexToRgba(tema.primaria, 0.2)}` : '0 2px 4px rgba(0,0,0,0.02)', transition: 'all 0.2s ease', flexShrink: 0 }}>
               {cat}
             </button>
           ))}
@@ -573,7 +582,7 @@ export default function Catalogo() {
                     {esgotado ? (
                       <button disabled style={{ width: '100%', background: '#f3f4f6', color: '#9ca3af', border: 'none', padding: '10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', cursor: 'not-allowed', textTransform: 'uppercase' }} onClick={(e) => e.stopPropagation()}>Esgotado</button>
                     ) : (
-                      <button style={{ width: '100%', background: tema.primaria, color: 'white', border: 'none', padding: '10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 4px 10px rgba(219, 39, 119, 0.2)' }} onClick={(e) => { e.stopPropagation(); setProdutoSelecionado(p); }}>Ver Detalhes</button>
+                      <button style={{ width: '100%', background: tema.primaria, color: 'white', border: 'none', padding: '10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', textTransform: 'uppercase', boxShadow: `0 4px 10px ${hexToRgba(tema.primaria, 0.2)}` }} onClick={(e) => { e.stopPropagation(); setProdutoSelecionado(p); }}>Ver Detalhes</button>
                     )}
 
                   </div>
