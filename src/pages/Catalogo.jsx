@@ -12,6 +12,7 @@ export default function Catalogo() {
   const [lojaAberta, setLojaAberta] = useState(true)
   const [infoEntrega, setInfoEntrega] = useState('Nenhuma informação cadastrada.')
   const [msgWhatsApp, setMsgWhatsApp] = useState('Olá! Gostaria de fazer o seguinte pedido:')
+  const [whatsappPedidos, setWhatsappPedidos] = useState('')
   const [redesSociais, setRedesSociais] = useState({ instagram: '', facebook: '', tiktok: '' })
   const [banners, setBanners] = useState([])
   const [telefoneLoja, setTelefoneLoja] = useState('')
@@ -55,6 +56,7 @@ export default function Catalogo() {
           if (config.lojaAberta !== undefined) setLojaAberta(config.lojaAberta)
           if (config.infoEntrega) setInfoEntrega(config.infoEntrega)
           if (config.msgWhatsApp) setMsgWhatsApp(config.msgWhatsApp)
+          if (config.whatsappPedidos) setWhatsappPedidos(config.whatsappPedidos)
           if (config.redesSociais) setRedesSociais(config.redesSociais)
           if (config.banners) setBanners(config.banners)
           if (config.telefone) setTelefoneLoja(config.telefone)
@@ -171,8 +173,13 @@ export default function Catalogo() {
 
   const finalizarPedidoWhatsApp = () => {
     if (carrinho.length === 0 || !lojaAberta) return
-    const numeroParaMandar = telefoneLoja ? telefoneLoja.replace(/\D/g, '') : ""
+    const numeroParaMandar = whatsappPedidos ? whatsappPedidos.replace(/\D/g, '') : (telefoneLoja ? telefoneLoja.replace(/\D/g, '') : "")
     
+    if (!numeroParaMandar) {
+      alert("O número de WhatsApp para pedidos não foi configurado.")
+      return
+    }
+
     let mensagem = `${msgWhatsApp}\n\n`
     carrinho.forEach(item => {
       const precoFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(item.preco))
@@ -183,7 +190,8 @@ export default function Catalogo() {
     const totalFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorTotalCarrinho)
     mensagem += `\n*Valor Total: ${totalFormatado}*`
     
-    const url = `https://wa.me/55${numeroParaMandar}?text=${encodeURIComponent(mensagem)}`
+    const prefixo = numeroParaMandar.startsWith('55') ? '' : '55'
+    const url = `https://wa.me/${prefixo}${numeroParaMandar}?text=${encodeURIComponent(mensagem)}`
     window.open(url, '_blank')
   }
 
@@ -356,20 +364,46 @@ export default function Catalogo() {
         </div>
       )}
 
+      {/* Modal de Informações e Redes Sociais */}
       {modalInfoAberta && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(5px)', zIndex: 5000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }} onClick={() => setModalInfoAberta(false)}>
           <div style={{ background: 'white', borderRadius: '24px', padding: '32px 24px', width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }} onClick={e => e.stopPropagation()}>
             <button onClick={() => setModalInfoAberta(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: '#f3f4f6', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: tema.primaria }}><X size={20} /></button>
             
             <h2 style={{ margin: 0, color: tema.textoPrincipal, fontSize: '22px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800' }}>
-              <Info size={24} color={tema.primaria} /> Entrega e Retirada
+              <Info size={24} color={tema.primaria} /> Informações
             </h2>
             
             <div style={{ background: '#f9fafb', padding: '20px', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
+              <h3 style={{ fontSize: '13px', color: tema.textoSecundario, margin: '0 0 8px 0', textTransform: 'uppercase', fontWeight: 'bold' }}>Entrega e Retirada</h3>
               <p style={{ margin: 0, fontSize: '15px', color: tema.textoPrincipal, lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
-                {infoEntrega}
+                {infoEntrega || 'Nenhuma informação cadastrada no momento.'}
               </p>
             </div>
+
+            {(redesSociais.instagram || redesSociais.facebook || redesSociais.tiktok) && (
+              <div style={{ marginTop: '8px' }}>
+                <h3 style={{ fontSize: '13px', color: tema.textoSecundario, margin: '0 0 12px 0', textTransform: 'uppercase', fontWeight: 'bold' }}>Nossas Redes</h3>
+                <div style={{ display: 'flex', gap: '16px' }}>
+                  {redesSociais.instagram && (
+                    <a href={redesSociais.instagram.startsWith('http') ? redesSociais.instagram : `https://${redesSociais.instagram}`} target="_blank" rel="noreferrer" style={{ width: '44px', height: '44px', borderRadius: '50%', background: hexToRgba(tema.primaria, 0.1), color: tema.primaria, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.2s', textDecoration: 'none' }}>
+                      <Share2 size={20} />
+                    </a>
+                  )}
+                  {redesSociais.facebook && (
+                    <a href={redesSociais.facebook.startsWith('http') ? redesSociais.facebook : `https://${redesSociais.facebook}`} target="_blank" rel="noreferrer" style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#dbeafe', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.2s', textDecoration: 'none' }}>
+                      <Globe size={20} />
+                    </a>
+                  )}
+                  {redesSociais.tiktok && (
+                    <a href={redesSociais.tiktok.startsWith('http') ? redesSociais.tiktok : `https://${redesSociais.tiktok}`} target="_blank" rel="noreferrer" style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#f3f4f6', color: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.2s', textDecoration: 'none' }}>
+                      <LinkIcon size={20} />
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       )}
@@ -594,28 +628,9 @@ export default function Catalogo() {
         </div>
       </main>
 
-      {/* RODAPÉ E REDES SOCIAIS */}
-      <footer style={{ borderTop: '1px solid #e5e7eb', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', background: 'white' }}>
+      {/* RODAPÉ LIMPO */}
+      <footer style={{ borderTop: '1px solid #e5e7eb', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', background: 'white' }}>
         <h3 style={{ margin: 0, fontSize: '18px', color: tema.textoPrincipal, fontWeight: '900' }}>{nomeLoja}</h3>
-        
-        <div style={{ display: 'flex', gap: '16px' }}>
-          {redesSociais.instagram && (
-            <a href={redesSociais.instagram.startsWith('http') ? redesSociais.instagram : `https://${redesSociais.instagram}`} target="_blank" rel="noreferrer" style={{ width: '40px', height: '40px', borderRadius: '50%', background: hexToRgba(tema.primaria, 0.1), color: tema.primaria, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.2s' }}>
-              <Share2 size={20} />
-            </a>
-          )}
-          {redesSociais.facebook && (
-            <a href={redesSociais.facebook.startsWith('http') ? redesSociais.facebook : `https://${redesSociais.facebook}`} target="_blank" rel="noreferrer" style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#dbeafe', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.2s' }}>
-              <Globe size={20} />
-            </a>
-          )}
-          {redesSociais.tiktok && (
-            <a href={redesSociais.tiktok.startsWith('http') ? redesSociais.tiktok : `https://${redesSociais.tiktok}`} target="_blank" rel="noreferrer" style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#f3f4f6', color: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.2s' }}>
-              <LinkIcon size={20} />
-            </a>
-          )}
-        </div>
-        
         <p style={{ margin: 0, fontSize: '12px', color: tema.textoSecundario, textAlign: 'center' }}>
           Sistema de catálogo digital otimizado.
         </p>
